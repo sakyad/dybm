@@ -34,19 +34,29 @@ import os
 
 from pydybm.time_series.dybm import LinearDyBM
 from pydybm.time_series.rnn_gaussian_dybm import RNNGaussianDyBM, GaussianDyBM
-from pydybm.base.sgd import RMSProp
+from pydybm.base.sgd import RMSProp, ADAM
 from scipy.ndimage.filters import gaussian_filter1d
 from sklearn.metrics import mean_squared_error
 
+"""
+Print whole dataframe: sanity check
+"""
+def print_full(x):
+    pandas.set_option('display.max_rows', len(x))
+    print(x)
+    pandas.reset_option('display.max_rows')
+
 dir_path = os.path.dirname(os.path.realpath(__file__))
+print ("directory path is: ",dir_path)
 head = os.path.split(dir_path)[0]
 parent = os.path.dirname(head)
-# load the dataset
-dataframe = pandas.read_csv(parent + '/data/daily-total-sunspot-number.csv',
-                            usecols=[1], engine='python', skipfooter=3)
+# load the
+
+dataframe = pandas.read_csv(parent + '/data/SN_d_tot_V2.0.csv',sep=';',
+                            usecols=[4], engine='python', skipfooter=1)
+print_full(dataframe)
 dataset = dataframe.values
 dataset = dataset.astype('float32')
-
 
 def MSE(y_true, y_pred):
     """
@@ -94,9 +104,9 @@ def learn_KerasRNN(trainX, trainY, testX, testY, modelType):
         saveResults = False
         # create and fit the LSTM network
         hidden_no = 10
-        max_epochs = 5
+        max_epochs = 10
         model = Sequential()
-        model.add(LSTM(hidden_no, activation='tanh', input_shape=(None, 1)))
+        model.add(LSTM(hidden_no, activation='relu', input_shape=(None, 1)))
         model.add(Dense(input_dim=hidden_no, units=1,
                         activation='linear'))
         model.compile(loss='mse', optimizer='rmsprop')
@@ -105,7 +115,7 @@ def learn_KerasRNN(trainX, trainY, testX, testY, modelType):
                   batch_size=1, verbose=2)
         end_time = time.time() - start_time
         # Estimate model training performance
-        trainScore = model.evaluate(trainX, trainY, verbose=0)
+        trainScore = model.evaluate(trainX, trainY, verbose=2)
         trainScore = math.sqrt(trainScore)
 
         # trainScore = scaler.inverse_transform(numpy.array([[trainScore]]))
@@ -212,10 +222,10 @@ def plotData(trainPredict, testPredict, dataset):
 
 def learn_DyBM(trainX, trainY, testX, testY, DyBMmodel):
 
-    plotFig = False
+    plotFig = True
     RNN_dim = 10
     input_dim = 1
-    max_epochs = 5
+    max_epochs = 10
     saveResults = False
     SGD = RMSProp
 
@@ -338,8 +348,9 @@ if __name__ == "__main__":
     print "Test data Y shape: ", testY.shape
 
     learn_DyBM(trainX, trainY, testX, testY, DyBMmodel="RNNGaussian")
+    learn_DyBM(trainX, trainY, testX, testY, DyBMmodel="Gaussian")
 
     learn_KerasRNN(trainX, trainY, testX, testY, modelType="LSTM")
-    # learn_KerasRNN(trainX, trainY, testX, testY, modelType="SimpleRNN")
+    #learn_KerasRNN(trainX, trainY, testX, testY, modelType="SimpleRNN")
 
 
